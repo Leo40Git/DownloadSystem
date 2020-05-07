@@ -7,14 +7,33 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
+/**
+ * Implementation of {@link DownloadHandler} that saves the downloaded bytes to a file specified by a {@link Path}.
+ * @author ADudeCalledLeo
+ */
 public class DownloadPathAdapter implements DownloadHandler {
+    /**
+     * Path to output bytes to.
+     */
     protected final Path outPath;
+    /**
+     * Channel to use to output bytes.
+     */
     protected ByteChannel chan;
 
+    /**
+     * Creates a new {@link DownloadPathAdapter}.
+     * @param outPath path to output bytes to
+     */
     public DownloadPathAdapter(Path outPath) {
         this.outPath = outPath;
     }
 
+    /**
+     * {@inheritDoc}<br>
+     * Creates {@linkplain #chan the channel to output bytes to}.
+     * @param size total number of bytes that will be downloaded
+     */
     @Override
     public void started(long size) {
         try {
@@ -25,6 +44,12 @@ public class DownloadPathAdapter implements DownloadHandler {
         }
     }
 
+    /**
+     * {@inheritDoc}<br>
+     * Writes the downloaded bytes to {@linkplain #chan the channel}.
+     * @param bytes bytes downloaded since the last time this method was called
+     * @param total total bytes downloaded
+     */
     @Override
     public void updated(ByteBuffer bytes, long total) {
         try {
@@ -34,6 +59,10 @@ public class DownloadPathAdapter implements DownloadHandler {
         }
     }
 
+    /**
+     * {@inheritDoc}<br>
+     * Closes the {@linkplain #chan output channel}.
+     */
     @Override
     public void completed() {
         try {
@@ -41,6 +70,11 @@ public class DownloadPathAdapter implements DownloadHandler {
         } catch (IOException ignored) { }
     }
 
+    /**
+     * {@inheritDoc}<br>
+     * Closes the {@linkplain #chan output channel}, and throws the provided exception wrapped in a {@link RuntimeException}.
+     * @param e exception that caused download to fail
+     */
     @Override
     public void failed(Exception e) {
         try {

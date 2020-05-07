@@ -6,7 +6,15 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Paths;
 
+/**
+ * Tests for the {@link DownloadSystem}!
+ * @author ADudeCalledLeo
+ */
 public class DownloadSystemTests {
+    /**
+     * Tests downloading a single file.
+     * @throws IOException if something bad happens
+     */
     @Test
     public void singleFileTest() throws IOException {
         DownloadSystem dlsys = new DownloadSystem();
@@ -20,7 +28,11 @@ public class DownloadSystemTests {
             e.printStackTrace();
         }
     }
-
+    
+    /**
+     * Tests downloading multiple files (or multiples of the same file).
+     * @throws IOException if something bad happens
+     */
     @Test
     public void multipleFileTest() throws IOException {
         DownloadSystem dlsys = new DownloadSystem();

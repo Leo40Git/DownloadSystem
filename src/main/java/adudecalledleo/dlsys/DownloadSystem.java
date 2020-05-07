@@ -8,6 +8,10 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.concurrent.*;
 
+/**
+ * Handles downloading data from the Internet asynchronously.
+ * @author ADudeCalledLeo
+ */
 public class DownloadSystem implements Runnable {
     private static final int DEFAULT_BUFFER_SIZE = 0x8000;
 
@@ -16,6 +20,9 @@ public class DownloadSystem implements Runnable {
     private Proxy proxy;
     private int bufferSize;
 
+    /**
+     * Creates a new {@link DownloadSystem}.
+     */
     public DownloadSystem() {
         execService = Executors.newCachedThreadPool();
         futures = new LinkedBlockingQueue<>();
@@ -23,24 +30,55 @@ public class DownloadSystem implements Runnable {
         bufferSize = DEFAULT_BUFFER_SIZE;
     }
 
+    /**
+     * Sets the {@link Proxy} to use while downloading.<br>
+     * This applies to {@linkplain #addDownload(URL, DownloadHandler) every download added to the queue},
+     * until the next <code>setProxy</code> call.
+     * @param proxy proxy to use to create connection
+     * @return this {@link DownloadSystem} instance
+     */
     public DownloadSystem setProxy(Proxy proxy) {
         this.proxy = proxy;
         return this;
     }
 
+    /**
+     * Sets the {@link Proxy} to use while downloading to no proxy at all.<br>
+     * This method is equivalent to <code>{@link #setProxy(Proxy) setProxy}({@link Proxy#NO_PROXY})</code>.
+     * @return this {@link DownloadSystem} instance
+     * @see #setProxy
+     */
     public DownloadSystem noProxy() {
         return setProxy(Proxy.NO_PROXY);
     }
 
+    /**
+     * Sets the buffer size to use while downloading.<br>
+     * This applies to {@linkplain #addDownload(URL, DownloadHandler) every download added to the queue},
+     * until the next <code>setBufferSize</code> call.
+     * @param bufferSize size of partial buffer
+     * @return this {@link DownloadSystem} instance
+     */
     public DownloadSystem setBufferSize(int bufferSize) {
         this.bufferSize = bufferSize;
         return this;
     }
 
+    /**
+     * Sets the buffer size to use while downloading to the default size.
+     * @return this {@link DownloadSystem} instance
+     * @see #setBufferSize(int)
+     */
     public DownloadSystem defaultBufferSize() {
         return setBufferSize(DEFAULT_BUFFER_SIZE);
     }
 
+    /**
+     * Adds a download to the queue.
+     * @param url {@link URL} to download from
+     * @param handler {@link DownloadHandler} that will handle this download's events
+     * @return this {@link DownloadSystem} instance
+     */
     public DownloadSystem addDownload(final URL url, final DownloadHandler handler) {
         final Proxy proxy1 = proxy;
         final int bufferSize1 = bufferSize;
@@ -76,6 +114,10 @@ public class DownloadSystem implements Runnable {
         }
     }
 
+    /**
+     * Processes the download queue.<br>Should not be called directly,
+     * instead this object should be assigned to a {@link Thread} as its {@link Runnable} object.
+     */
     @Override
     public void run() {
         while (!futures.isEmpty()) {

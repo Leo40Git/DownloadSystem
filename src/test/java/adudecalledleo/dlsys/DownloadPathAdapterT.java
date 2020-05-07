@@ -14,6 +14,11 @@ import java.nio.file.StandardOpenOption;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+/**
+ * Extension of {@link DownloadPathAdapter} to be used for testing.<br>
+ * In addition to writing to a file, this class also verifies the downloaded file's MD5 hash.<br>
+ * It also adds some debug logging.
+ */
 public class DownloadPathAdapterT extends DownloadPathAdapter {
     private long size;
     private final URL md5URL;

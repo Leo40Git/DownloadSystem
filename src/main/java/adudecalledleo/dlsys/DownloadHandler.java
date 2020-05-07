@@ -16,9 +16,10 @@ public interface DownloadHandler {
     /**
      * Called when progress is made on the download.
      * @param bytes bytes downloaded since the last time this method was called
+     * @param offset offset of bytes in file
      * @param total total bytes downloaded
      */
-    void updated(ByteBuffer bytes, long total);
+    void updated(ByteBuffer bytes, long offset, long total);
 
     /**
      * Called when the download is completed.

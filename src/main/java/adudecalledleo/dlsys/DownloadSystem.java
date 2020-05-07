@@ -19,6 +19,7 @@ public class DownloadSystem implements Runnable {
     private final BlockingQueue<Future<Void>> futures;
     private Proxy proxy;
     private int bufferSize;
+    private boolean forceContiguous;
 
     /**
      * Creates a new {@link DownloadSystem}.
@@ -74,6 +75,26 @@ public class DownloadSystem implements Runnable {
     }
 
     /**
+     * Forces this system to always download files as one contiguous chunk.
+     * @return this {@link DownloadSystem} instance
+     * @see #allowSegmented()
+     */
+    public DownloadSystem forceContiguous() {
+        forceContiguous = true;
+        return this;
+    }
+
+    /**
+     * Allows this system to download files in a segmented manner.
+     * @return this {@link DownloadSystem} instance
+     * @see #forceContiguous()
+     */
+    public DownloadSystem allowSegmented() {
+        forceContiguous = false;
+        return this;
+    }
+
+    /**
      * Adds a download to the queue.
      * @param url {@link URL} to download from
      * @param handler {@link DownloadHandler} that will handle this download's events
@@ -94,23 +115,63 @@ public class DownloadSystem implements Runnable {
         URLConnection connection = url.openConnection(proxy);
         long size;
         handler.started(size = connection.getContentLengthLong());
-        ReadableByteChannel chan = Channels.newChannel(connection.getInputStream());
-        ByteBuffer buf = ByteBuffer.allocate(bufferSize);
-        long total = 0;
-        try {
-            while (total < size) {
-                int read = chan.read(buf);
-                total += read;
-                buf.flip();
-                handler.updated(buf, total);
-                buf.clear();
+        boolean segmented = false;
+        if (size > 0 && !forceContiguous && connection.getHeaderField("Accept-Ranges").equals("bytes"))
+            segmented = bufferSize < size;
+        if (segmented) {
+            // segmented mode
+            long segmentCount = Math.floorDiv(size, bufferSize);
+            final long[] total = { 0 };
+            for (long i = 0; i < segmentCount - 1; i++) {
+                final long i1 = i;
+                futures.add(execService.submit(() -> {
+                    URLConnection sc = url.openConnection(proxy);
+                    sc.setRequestProperty("Range", String.format("bytes=%d-%d", i1 * bufferSize, (i1 + 1) * bufferSize));
+                    ReadableByteChannel chan = Channels.newChannel(sc.getInputStream());
+                    ByteBuffer buf = ByteBuffer.allocate(bufferSize);
+                    int read = chan.read(buf);
+                    total[0] += read;
+                    buf.flip();
+                    handler.updated(buf, i1 * bufferSize, total[0]);
+                    buf.clear();
+                    return null;
+                }));
             }
-        } catch (Exception e) {
-            chan.close();
-            handler.failed(e);
-        } finally {
-            chan.close();
-            handler.completed();
+            final int remainder = (int) (size - bufferSize * segmentCount);
+            if (remainder > 0) {
+                futures.add(execService.submit(() -> {
+                    URLConnection sc = url.openConnection(proxy);
+                    sc.setRequestProperty("Range", String.format("bytes=%d-%d", segmentCount * bufferSize, segmentCount * bufferSize + remainder));
+                    ReadableByteChannel chan = Channels.newChannel(sc.getInputStream());
+                    ByteBuffer buf = ByteBuffer.allocate(remainder);
+                    int read = chan.read(buf);
+                    total[0] += read;
+                    buf.flip();
+                    handler.updated(buf, segmentCount * bufferSize, total[0]);
+                    buf.clear();
+                    return null;
+                }));
+            }
+        } else {
+            // contiguous mode
+            ReadableByteChannel chan = Channels.newChannel(connection.getInputStream());
+            ByteBuffer buf = ByteBuffer.allocate(bufferSize);
+            long total = 0;
+            try {
+                while (total < size) {
+                    int read = chan.read(buf);
+                    total += read;
+                    buf.flip();
+                    handler.updated(buf, 0, total);
+                    buf.clear();
+                }
+            } catch (Exception e) {
+                chan.close();
+                handler.failed(e);
+            } finally {
+                chan.close();
+                handler.completed();
+            }
         }
     }
 

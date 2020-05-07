@@ -3,6 +3,7 @@ package adudecalledleo.dlsys;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -17,9 +18,9 @@ public class DownloadPathAdapter implements DownloadHandler {
      */
     protected final Path outPath;
     /**
-     * Channel to use to output bytes.
+     * Output channel
      */
-    protected ByteChannel chan;
+    protected SeekableByteChannel chan;
 
     /**
      * Creates a new {@link DownloadPathAdapter}.
@@ -31,7 +32,7 @@ public class DownloadPathAdapter implements DownloadHandler {
 
     /**
      * {@inheritDoc}<br>
-     * Creates {@linkplain #chan the channel to output bytes to}.
+     * Creates {@linkplain #chan the output channel}.
      * @param size total number of bytes that will be downloaded
      */
     @Override
@@ -46,13 +47,15 @@ public class DownloadPathAdapter implements DownloadHandler {
 
     /**
      * {@inheritDoc}<br>
-     * Writes the downloaded bytes to {@linkplain #chan the channel}.
+     * Writes the downloaded bytes to {@linkplain #chan the output channel}.
      * @param bytes bytes downloaded since the last time this method was called
+     * @param offset offset of bytes in file
      * @param total total bytes downloaded
      */
     @Override
-    public void updated(ByteBuffer bytes, long total) {
+    public void updated(ByteBuffer bytes, long offset, long total) {
         try {
+            chan.position(offset);
             chan.write(bytes);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to ByteChannel", e);
@@ -72,7 +75,7 @@ public class DownloadPathAdapter implements DownloadHandler {
 
     /**
      * {@inheritDoc}<br>
-     * Closes the {@linkplain #chan output channel}, and throws the provided exception wrapped in a {@link RuntimeException}.
+     * Closes {@linkplain #chan the output channel}, and throws the provided exception wrapped in a {@link RuntimeException}.
      * @param e exception that caused download to fail
      */
     @Override

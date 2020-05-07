@@ -51,11 +51,11 @@ public class DownloadPathAdapterT extends DownloadPathAdapter {
     }
 
     @Override
-    public void updated(ByteBuffer bytes, long total) {
+    public void updated(ByteBuffer bytes, long offset, long total) {
         System.out.format("%3d%% complete (%gKB / %gKB)%n",
                 (long) Math.floor(100 * (total / (float)size)), total / 1024f, size / 1024f);
         try {
-            super.updated(bytes, total);
+            super.updated(bytes, offset, total);
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());

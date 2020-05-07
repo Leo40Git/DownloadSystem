@@ -1,5 +1,7 @@
 # Project exclude paths
 /.gradle/
+/build/
+/out/
 # IDEA stuff
 /.idea/
 *.iml

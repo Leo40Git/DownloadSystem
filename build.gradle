@@ -1,11 +1,14 @@
 plugins {
     id 'java'
+    id 'maven-publish'
+    id 'com.jfrog.bintray' version '1.8.5'
 }
 
-group 'adudecalledleo'
-version '1.0-SNAPSHOT'
+group 'adudecalledleo.javalibs'
+version '1.0'
 
 repositories {
+    jcenter()
     mavenCentral()
 }
 
@@ -13,4 +16,63 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'commons-io', name: 'commons-io', version: '2.6'
     testCompile group: 'commons-codec', name: 'commons-codec', version: '1.14'
+}
+
+tasks.register("sourcesJar", Jar) {
+    from sourceSets.main.allJava
+    classifier "sources"
+}
+
+tasks.register("javadocJar", Jar) {
+    from javadoc
+    classifier "javadoc"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact sourcesJar
+            artifact javadocJar
+            pom {
+                name = "DownloadSystem"
+                description = "Simple asynchronous library for downloading files."
+                url = "https://github.com/Leo4Git/DownloadSystem"
+                licenses {
+                    license {
+                        name = "MIT"
+                        url = "https://github.com/Leo4Git/DownloadSystem/blob/master/LICENSE"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "adudecalledleo"
+                        name = "ADudeCalledLeo"
+                        email = "kfir40mailminer@gmail.com"
+                    }
+                }
+                scm {
+                    connection = "scm:git:https://github.com/Leo4Git/DownloadSystem.git"
+                    developerConnection = "scm:git:https://github.com/Leo4Git/DownloadSystem.git"
+                    url = "https://github.com/Leo4Git/DownloadSystem"
+                }
+            }
+        }
+    }
+}
+
+bintray {
+    user = project.bintray_user
+    key = project.bintray_apikey
+    publications = ['mavenJava']
+    pkg {
+        repo = 'javalibs'
+        name = 'DownloadSystem'
+        vcsUrl = 'https://github.com/Leo4Git/DownloadSystem.git'
+        licenses = ['MIT']
+        version {
+            name = '1.0'
+            desc = 'DownloadSystem 1.0'
+            released = new Date()
+        }
+    }
 }

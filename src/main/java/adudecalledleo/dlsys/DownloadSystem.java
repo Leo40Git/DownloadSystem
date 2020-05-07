@@ -9,14 +9,18 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.concurrent.*;
 
 public class DownloadSystem implements Runnable {
+    private static final int DEFAULT_BUFFER_SIZE = 0x8000;
+
     private final ExecutorService execService;
     private final BlockingQueue<Future<Void>> futures;
     private Proxy proxy;
+    private int bufferSize;
 
     public DownloadSystem() {
         execService = Executors.newCachedThreadPool();
         futures = new LinkedBlockingQueue<>();
-        noProxy();
+        proxy = Proxy.NO_PROXY;
+        bufferSize = DEFAULT_BUFFER_SIZE;
     }
 
     public DownloadSystem setProxy(Proxy proxy) {
@@ -28,21 +32,32 @@ public class DownloadSystem implements Runnable {
         return setProxy(Proxy.NO_PROXY);
     }
 
+    public DownloadSystem setBufferSize(int bufferSize) {
+        this.bufferSize = bufferSize;
+        return this;
+    }
+
+    public DownloadSystem defaultBufferSize() {
+        return setBufferSize(DEFAULT_BUFFER_SIZE);
+    }
+
     public DownloadSystem addDownload(final URL url, final DownloadHandler handler) {
         final Proxy proxy1 = proxy;
+        final int bufferSize1 = bufferSize;
         futures.add(execService.submit(() -> {
-            performDownload(url, proxy1, handler);
+            performDownload(url, proxy1, handler, bufferSize1);
             return null;
         }));
         return this;
     }
 
-    private void performDownload(URL url, Proxy proxy, DownloadHandler handler) throws Exception {
+    private void performDownload(final URL url, final Proxy proxy, final DownloadHandler handler, final int bufferSize)
+            throws Exception {
         URLConnection connection = url.openConnection(proxy);
         long size;
         handler.started(size = connection.getContentLengthLong());
         ReadableByteChannel chan = Channels.newChannel(connection.getInputStream());
-        ByteBuffer buf = ByteBuffer.allocate(1024);
+        ByteBuffer buf = ByteBuffer.allocate(bufferSize);
         long total = 0;
         try {
             while (total < size) {
@@ -53,8 +68,10 @@ public class DownloadSystem implements Runnable {
                 buf.clear();
             }
         } catch (Exception e) {
+            chan.close();
             handler.failed(e);
         } finally {
+            chan.close();
             handler.completed();
         }
     }

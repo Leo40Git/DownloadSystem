@@ -3,3 +3,6 @@
 # IDEA stuff
 /.idea/
 *.iml
+# Test files
+*.md5
+*.dat
